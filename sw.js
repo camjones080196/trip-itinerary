@@ -1,6 +1,6 @@
 // Network-first for the app's own files so updates show straight away;
 // falls back to the cached copy when offline. Supabase/CDN requests are not cached.
-const CACHE = "london-2026-v2";
+const CACHE = "london-2026-v3";
 const SHELL = ["./", "index.html", "photo.jpg", "manifest.webmanifest", "icons/icon-192.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener("activate", (e) => {

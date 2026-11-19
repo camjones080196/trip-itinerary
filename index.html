@@ -36,7 +36,7 @@
   .who button { margin-left: 6px; }
   .hero { display: block; width: 100%; height: auto; max-height: 320px; object-fit: cover; object-position: center 35%; border-radius: 12px; margin-bottom: 16px; }
   [hidden] { display: none !important; }
-  .install { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  .install { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: nowrap; padding: 10px 12px 10px 16px;
     position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom)); width: min(688px, calc(100% - 32px));
     margin: 0; z-index: 10; box-shadow: 0 6px 24px rgba(0,0,0,.25); }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
@@ -96,8 +96,8 @@
 
   <div id="list"><p class="empty">Loading…</p></div>
   <div class="card install" id="install" hidden>
-    <span id="install-text">Install London 2026 on your phone for quick access.</span>
-    <span style="display:flex;gap:8px"><button class="primary" id="install-btn">Install app</button><button id="install-close" aria-label="Dismiss">✕</button></span>
+    <span id="install-text" style="flex:1;min-width:0;font-size:.92rem">Install London 2026 on your phone for quick access.</span>
+    <span style="display:flex;gap:8px;flex-shrink:0;align-items:center"><button class="primary" id="install-btn">Install app</button><button id="install-close" aria-label="Dismiss">✕</button></span>
   </div>
 </main>
 
@@ -333,7 +333,8 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catc
   $("install-close").onclick = () => { box.hidden = true; try { localStorage.setItem("install-dismissed", "1"); } catch (e) {} };
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   if (ios) {
-    text.innerHTML = "To install: tap the <b>Share</b> button in Safari, then <b>Add to Home Screen</b>.";
+    const where = /CriOS/i.test(navigator.userAgent) ? "in the address bar" : /FxiOS|EdgiOS/i.test(navigator.userAgent) ? "in the menu" : "";
+    text.innerHTML = `To install, tap <b>Share</b>${where ? " " + where : ""}, then <b>Add to Home Screen</b>.`;
     btn.hidden = true; box.hidden = false; return;
   }
   let deferred;
