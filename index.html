@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>London 2026</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1d3a6e">
@@ -28,7 +28,7 @@
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text);
     font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  main { max-width: 720px; margin: 0 auto; padding: 16px 16px 64px; }
+  main { max-width: 720px; margin: 0 auto; padding: 16px 16px 140px; }
   header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
   h1 { font-size: 1.5rem; margin: 0; }
   h2.day { font-size: 1rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 28px 0 10px; }
@@ -36,7 +36,9 @@
   .who button { margin-left: 6px; }
   .hero { display: block; width: 100%; height: auto; max-height: 320px; object-fit: cover; object-position: center 35%; border-radius: 12px; margin-bottom: 16px; }
   [hidden] { display: none !important; }
-  .install { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .install { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom)); width: min(688px, calc(100% - 32px));
+    margin: 0; z-index: 10; box-shadow: 0 6px 24px rgba(0,0,0,.25); }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
   input, textarea, button { font: inherit; color: inherit; }
   input, textarea { width: 100%; padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
@@ -78,10 +80,6 @@
     <h1>London 2026</h1>
     <div class="who" id="who"></div>
   </header>
-  <div class="card install" id="install" hidden>
-    <span id="install-text">Install London 2026 on your phone for quick access.</span>
-    <span style="display:flex;gap:8px"><button class="primary" id="install-btn">Install app</button><button id="install-close" aria-label="Dismiss">✕</button></span>
-  </div>
   <img class="hero" src="photo.jpg" alt="The group" width="828" height="467">
 
   <form class="card" id="add-form">
@@ -97,6 +95,10 @@
   </form>
 
   <div id="list"><p class="empty">Loading…</p></div>
+  <div class="card install" id="install" hidden>
+    <span id="install-text">Install London 2026 on your phone for quick access.</span>
+    <span style="display:flex;gap:8px"><button class="primary" id="install-btn">Install app</button><button id="install-close" aria-label="Dismiss">✕</button></span>
+  </div>
 </main>
 
 <dialog id="name-dialog">
