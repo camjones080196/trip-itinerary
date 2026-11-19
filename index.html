@@ -103,7 +103,9 @@ let state = { items: [], votes: [], comments: [] };
 const openComments = new Set();
 let editingId = null;
 let pendingRender = false;
-const isMine = (it) => me && it.created_by.trim().toLowerCase() === me.trim().toLowerCase();
+let editingCommentId = null;
+const sameName = (n) => !!me && String(n).trim().toLowerCase() === me.trim().toLowerCase();
+const isMine = (it) => sameName(it.created_by);
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -148,7 +150,7 @@ async function load() {
 
 function render() {
   const list = $("list");
-  if (editingId && document.activeElement && document.activeElement.closest && document.activeElement.closest("form[data-edit]") && state.items.some(i => i.id === editingId)) {
+  if ((editingId || editingCommentId) && document.activeElement && document.activeElement.closest && document.activeElement.closest("form[data-edit], form[data-editc]")) {
     pendingRender = true; return;
   }
   pendingRender = false;
@@ -187,7 +189,9 @@ function render() {
         <button class="link danger" data-del="${it.id}">Delete</button>
       </div>
       ${open ? `<div class="comments">
-        ${cs.map(c => `<div class="comment"><span class="by">${esc(c.author)}</span> <span class="when">${esc(fmtWhen(c.created_at))}</span><br>${esc(c.body)}</div>`).join("") || `<div class="meta">No comments yet.</div>`}
+        ${cs.map(c => editingCommentId === c.id
+          ? `<form class="comment-form" data-editc="${c.id}"><input maxlength="2000" required value="${esc(c.body)}"><button class="primary" type="submit">Save</button><button type="button" data-cancelc="1">Cancel</button></form>`
+          : `<div class="comment"><span class="by">${esc(c.author)}</span> <span class="when">${esc(fmtWhen(c.created_at))}${c.edited_at ? " · edited" : ""}</span>${sameName(c.author) ? ` <button class="link" data-editc="${c.id}">Edit</button>` : ""}<br>${esc(c.body)}</div>`).join("") || `<div class="meta">No comments yet.</div>`}
         <form class="comment-form" data-comment="${it.id}">
           <input maxlength="2000" placeholder="Add a comment" required>
           <button type="submit">Post</button>
@@ -213,6 +217,11 @@ $("list").addEventListener("click", async (e) => {
     }
   } else if (t.dataset.editbtn) {
     editingId = t.dataset.editbtn; render();
+  } else if (t.dataset.editc) {
+    editingCommentId = t.dataset.editc; render();
+    document.querySelector(`form[data-editc="${editingCommentId}"] input`)?.focus();
+  } else if (t.dataset.cancelc) {
+    editingCommentId = null; t.blur(); render();
   } else if (t.dataset.cancel) {
     editingId = null; t.blur(); render();
   } else if (t.dataset.toggle) {
@@ -239,6 +248,19 @@ $("list").addEventListener("submit", async (e) => {
     }).eq("id", it.id);
     if (error) { alert("Edit didn't save: " + error.message); return; }
     editingId = null; document.activeElement.blur(); load();
+    return;
+  }
+  const cf = e.target.closest("form[data-editc]");
+  if (cf) {
+    e.preventDefault();
+    const c = state.comments.find(x => x.id === cf.dataset.editc);
+    if (!c || !sameName(c.author)) return;
+    const body = cf.querySelector("input").value.trim(); if (!body) return;
+    if (body !== c.body) {
+      const { error } = await db.from("comments").update({ body, edited_at: new Date().toISOString() }).eq("id", c.id);
+      if (error) { alert("Edit didn't save: " + error.message); return; }
+    }
+    editingCommentId = null; document.activeElement.blur(); load();
     return;
   }
   const f = e.target.closest("form[data-comment]"); if (!f) return;
