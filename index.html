@@ -191,7 +191,7 @@ function render() {
       ${open ? `<div class="comments">
         ${cs.map(c => editingCommentId === c.id
           ? `<form class="comment-form" data-editc="${c.id}"><input maxlength="2000" required value="${esc(c.body)}"><button class="primary" type="submit">Save</button><button type="button" data-cancelc="1">Cancel</button></form>`
-          : `<div class="comment"><span class="by">${esc(c.author)}</span> <span class="when">${esc(fmtWhen(c.created_at))}${c.edited_at ? " · edited" : ""}</span>${sameName(c.author) ? ` <button class="link" data-editc="${c.id}">Edit</button>` : ""}<br>${esc(c.body)}</div>`).join("") || `<div class="meta">No comments yet.</div>`}
+          : `<div class="comment"><span class="by">${esc(c.author)}</span> <span class="when">${esc(fmtWhen(c.created_at))}${c.edited_at ? " · edited" : ""}</span>${sameName(c.author) ? ` <button class="link" data-editc="${c.id}">Edit</button> <button class="link danger" data-delc="${c.id}">Delete</button>` : ""}<br>${esc(c.body)}</div>`).join("") || `<div class="meta">No comments yet.</div>`}
         <form class="comment-form" data-comment="${it.id}">
           <input maxlength="2000" placeholder="Add a comment" required>
           <button type="submit">Post</button>
@@ -220,6 +220,12 @@ $("list").addEventListener("click", async (e) => {
   } else if (t.dataset.editc) {
     editingCommentId = t.dataset.editc; render();
     document.querySelector(`form[data-editc="${editingCommentId}"] input`)?.focus();
+  } else if (t.dataset.delc) {
+    const c = state.comments.find(x => x.id === t.dataset.delc);
+    if (!c || !sameName(c.author) || !confirm("Delete this comment?")) return;
+    const { error } = await db.from("comments").delete().eq("id", c.id);
+    if (error) { alert("Couldn't delete: " + error.message); return; }
+    load();
   } else if (t.dataset.cancelc) {
     editingCommentId = null; t.blur(); render();
   } else if (t.dataset.cancel) {
