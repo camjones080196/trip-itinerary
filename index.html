@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Trip Itinerary</title>
+<title>London 2026</title>
 <style>
   :root {
     --bg: #f6f5f2; --card: #fff; --text: #1f2328; --muted: #6b7078; --border: #e3e1dc;
@@ -26,6 +26,7 @@
   h2.day { font-size: 1rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 28px 0 10px; }
   .who { color: var(--muted); font-size: .9rem; text-align: right; }
   .who button { margin-left: 6px; }
+  .hero { display: block; width: 100%; height: auto; max-height: 320px; object-fit: cover; object-position: center 35%; border-radius: 12px; margin-bottom: 16px; }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
   input, textarea, button { font: inherit; color: inherit; }
   input, textarea { width: 100%; padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
@@ -64,9 +65,10 @@
 <body>
 <main>
   <header>
-    <h1>Trip Itinerary</h1>
+    <h1>London 2026</h1>
     <div class="who" id="who"></div>
   </header>
+  <img class="hero" src="photo.jpg" alt="The group" width="828" height="467">
 
   <form class="card" id="add-form">
     <strong>Add an idea</strong>

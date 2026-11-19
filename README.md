@@ -1,4 +1,4 @@
-# Trip Itinerary
+# London 2026
 
 A one-page app for planning a trip together. Add ideas (with an optional date and a note), vote Yes / Maybe / No, see who voted what, and comment. Updates live for everyone.
 
