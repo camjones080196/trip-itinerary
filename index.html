@@ -101,6 +101,9 @@ let me = "";
 try { me = localStorage.getItem("itinerary-name") || ""; } catch (e) {}
 let state = { items: [], votes: [], comments: [] };
 const openComments = new Set();
+let editingId = null;
+let pendingRender = false;
+const isMine = (it) => me && it.created_by.trim().toLowerCase() === me.trim().toLowerCase();
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -145,6 +148,10 @@ async function load() {
 
 function render() {
   const list = $("list");
+  if (editingId && document.activeElement && document.activeElement.closest && document.activeElement.closest("form[data-edit]") && state.items.some(i => i.id === editingId)) {
+    pendingRender = true; return;
+  }
+  pendingRender = false;
   if (!state.items.length) { list.innerHTML = `<p class="empty">Nothing here yet. Add the first idea above.</p>`; return; }
   let html = "", lastDay;
   for (const it of state.items) {
@@ -159,14 +166,24 @@ function render() {
     const voterLine = ["yes","maybe","no"].filter(ch => by(ch).length)
       .map(ch => `<b>${ch[0].toUpperCase() + ch.slice(1)}:</b> ${by(ch).map(esc).join(", ")}`).join(" · ");
     const open = openComments.has(it.id);
+    const editing = editingId === it.id;
     html += `<article class="card">
+      ${editing ? `<form class="edit-form" data-edit="${it.id}">
+        <div class="row">
+          <div><label>What</label><input name="title" maxlength="200" required value="${esc(it.title)}"></div>
+          <div style="flex:0 1 170px"><label>Date (optional)</label><input name="date" type="date" value="${esc(it.item_date || "")}"></div>
+        </div>
+        <label>Note</label><textarea name="note" maxlength="2000">${esc(it.note || "")}</textarea>
+        <div style="margin-top:10px;display:flex;gap:8px"><button class="primary" type="submit">Save</button><button type="button" data-cancel="1">Cancel</button></div>
+      </form>` : `
       <h3 class="item-title">${esc(it.title)}</h3>
       <div class="meta">Added by ${esc(it.created_by)}</div>
-      ${it.note ? `<p class="note">${esc(it.note)}</p>` : ""}
+      ${it.note ? `<p class="note">${esc(it.note)}</p>` : ""}`}
       <div class="votes">${btn("yes","Yes")}${btn("maybe","Maybe")}${btn("no","No")}</div>
       ${voterLine ? `<div class="voters">${voterLine}</div>` : ""}
       <div class="item-actions">
         <button class="link" data-toggle="${it.id}">${open ? "Hide" : "Show"} comments (${cs.length})</button>
+        ${isMine(it) && !editing ? `<button class="link" data-editbtn="${it.id}">Edit</button>` : ""}
         <button class="link danger" data-del="${it.id}">Delete</button>
       </div>
       ${open ? `<div class="comments">
@@ -194,6 +211,10 @@ $("list").addEventListener("click", async (e) => {
       const { error } = await db.from("votes").upsert({ item_id: id, voter: me, choice, updated_at: new Date().toISOString() });
       if (error) { alert("Vote didn't save: " + error.message); load(); }
     }
+  } else if (t.dataset.editbtn) {
+    editingId = t.dataset.editbtn; render();
+  } else if (t.dataset.cancel) {
+    editingId = null; t.blur(); render();
   } else if (t.dataset.toggle) {
     const id = t.dataset.toggle;
     openComments.has(id) ? openComments.delete(id) : openComments.add(id);
@@ -207,6 +228,19 @@ $("list").addEventListener("click", async (e) => {
 });
 
 $("list").addEventListener("submit", async (e) => {
+  const ef = e.target.closest("form[data-edit]");
+  if (ef) {
+    e.preventDefault();
+    const it = state.items.find(i => i.id === ef.dataset.edit);
+    if (!it || !isMine(it)) return;
+    const title = ef.title.value.trim(); if (!title) return;
+    const { error } = await db.from("items").update({
+      title, note: ef.note.value.trim() || null, item_date: ef.date.value || null,
+    }).eq("id", it.id);
+    if (error) { alert("Edit didn't save: " + error.message); return; }
+    editingId = null; document.activeElement.blur(); load();
+    return;
+  }
   const f = e.target.closest("form[data-comment]"); if (!f) return;
   e.preventDefault();
   if (!me) return askName();
