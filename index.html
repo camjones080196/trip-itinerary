@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trip Itinerary</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #fff; --text: #1f2328; --muted: #6b7078; --border: #e3e1dc;
+    --accent: #2f6fde; --yes: #1f8a4c; --no: #c93c3c; --maybe: #c28a12;
+    --yes-bg: #e3f4ea; --no-bg: #fbe7e7; --maybe-bg: #fbf1dc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15171a; --card: #1e2125; --text: #e8e9eb; --muted: #9aa0a8; --border: #33373d;
+      --accent: #6a9cf0; --yes: #4cc27f; --no: #ef7272; --maybe: #e2b04a;
+      --yes-bg: #1c3426; --no-bg: #3a2020; --maybe-bg: #3a3019;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 16px 16px 64px; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+  h1 { font-size: 1.5rem; margin: 0; }
+  h2.day { font-size: 1rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 28px 0 10px; }
+  .who { color: var(--muted); font-size: .9rem; text-align: right; }
+  .who button { margin-left: 6px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+  input, textarea, button { font: inherit; color: inherit; }
+  input, textarea { width: 100%; padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+  textarea { resize: vertical; min-height: 60px; }
+  label { display: block; font-size: .85rem; color: var(--muted); margin: 8px 0 4px; }
+  button { cursor: pointer; border: 1px solid var(--border); background: var(--card); border-radius: 8px; padding: 7px 12px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.link { border: none; background: none; padding: 0; color: var(--accent); font-size: .85rem; }
+  button.danger { color: var(--no); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+  .row > * { flex: 1 1 160px; }
+  .item-title { font-weight: 650; font-size: 1.1rem; margin: 0; overflow-wrap: anywhere; }
+  .meta { color: var(--muted); font-size: .82rem; margin-top: 2px; }
+  .note { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .votes { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .vote { flex: 1 1 0; min-width: 84px; display: flex; flex-direction: column; align-items: center; padding: 8px; }
+  .vote .count { font-size: 1.2rem; font-weight: 700; }
+  .vote.yes.mine { background: var(--yes-bg); border-color: var(--yes); color: var(--yes); }
+  .vote.no.mine { background: var(--no-bg); border-color: var(--no); color: var(--no); }
+  .vote.maybe.mine { background: var(--maybe-bg); border-color: var(--maybe); color: var(--maybe); }
+  .voters { font-size: .82rem; color: var(--muted); margin-top: 8px; }
+  .voters b { color: var(--text); font-weight: 600; }
+  .comments { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 10px; }
+  .comment { font-size: .92rem; margin-bottom: 6px; overflow-wrap: anywhere; }
+  .comment .by { font-weight: 600; }
+  .comment .when { color: var(--muted); font-size: .78rem; }
+  .comment-form { display: flex; gap: 8px; margin-top: 6px; }
+  .comment-form input { flex: 1; }
+  .item-actions { display: flex; gap: 14px; margin-top: 10px; }
+  .empty { text-align: center; color: var(--muted); padding: 32px 0; }
+  .error { color: var(--no); font-size: .9rem; margin-top: 8px; }
+  dialog { border: 1px solid var(--border); border-radius: 12px; background: var(--card); color: var(--text); width: min(92vw, 380px); }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Trip Itinerary</h1>
+    <div class="who" id="who"></div>
+  </header>
+
+  <form class="card" id="add-form">
+    <strong>Add an idea</strong>
+    <div class="row">
+      <div><label for="f-title">What</label><input id="f-title" maxlength="200" required placeholder="e.g. Sunset hike up Lion's Head"></div>
+      <div style="flex:0 1 170px"><label for="f-date">Date (optional)</label><input id="f-date" type="date"></div>
+    </div>
+    <label for="f-note">Note</label>
+    <textarea id="f-note" maxlength="2000" placeholder="Times, cost, links, anything useful"></textarea>
+    <div style="margin-top:10px"><button class="primary" type="submit">Add to itinerary</button></div>
+    <div class="error" id="add-error"></div>
+  </form>
+
+  <div id="list"><p class="empty">Loading…</p></div>
+</main>
+
+<dialog id="name-dialog">
+  <form method="dialog" id="name-form">
+    <p style="margin-top:0"><strong>What's your name?</strong><br><span class="meta">It shows next to your votes and comments.</span></p>
+    <input id="name-input" maxlength="50" required autocomplete="given-name">
+    <div style="margin-top:12px;text-align:right"><button class="primary" type="submit">Continue</button></div>
+  </form>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = "https://cyhxgqjiszdlrgryqvyn.supabase.co";
+const SUPABASE_KEY = "sb_publishable_gHVJKKdGrlwxoO7VhqUZdA_yRo3vyXL";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let me = "";
+try { me = localStorage.getItem("itinerary-name") || ""; } catch (e) {}
+let state = { items: [], votes: [], comments: [] };
+const openComments = new Set();
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+function askName() {
+  $("name-input").value = me;
+  $("name-dialog").showModal();
+}
+$("name-form").addEventListener("submit", () => {
+  const v = $("name-input").value.trim();
+  if (!v) return;
+  me = v;
+  try { localStorage.setItem("itinerary-name", me); } catch (e) {}
+  renderWho(); render();
+});
+$("name-dialog").addEventListener("cancel", (e) => { if (!me) e.preventDefault(); });
+
+function renderWho() {
+  $("who").innerHTML = me ? `You're <b>${esc(me)}</b><button class="link" id="change-name">change</button>` : "";
+  const b = $("change-name"); if (b) b.onclick = askName;
+}
+
+function fmtDay(d) {
+  if (!d) return "No date yet";
+  return new Date(d + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+}
+function fmtWhen(ts) {
+  return new Date(ts).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+async function load() {
+  const [i, v, c] = await Promise.all([
+    db.from("items").select("*").order("item_date", { ascending: true, nullsFirst: false }).order("created_at"),
+    db.from("votes").select("*"),
+    db.from("comments").select("*").order("created_at"),
+  ]);
+  const err = i.error || v.error || c.error;
+  if (err) { $("list").innerHTML = `<p class="error">Couldn't load the itinerary: ${esc(err.message)}</p>`; return; }
+  state = { items: i.data, votes: v.data, comments: c.data };
+  render();
+}
+
+function render() {
+  const list = $("list");
+  if (!state.items.length) { list.innerHTML = `<p class="empty">Nothing here yet. Add the first idea above.</p>`; return; }
+  let html = "", lastDay;
+  for (const it of state.items) {
+    const day = it.item_date || "";
+    if (day !== lastDay) { html += `<h2 class="day">${esc(fmtDay(day))}</h2>`; lastDay = day; }
+    const vs = state.votes.filter(v => v.item_id === it.id);
+    const cs = state.comments.filter(c => c.item_id === it.id);
+    const mine = vs.find(v => v.voter === me)?.choice;
+    const by = (ch) => vs.filter(v => v.choice === ch).map(v => v.voter);
+    const btn = (ch, label) => `<button class="vote ${ch} ${mine === ch ? "mine" : ""}" data-vote="${ch}" data-id="${it.id}">
+        <span class="count">${by(ch).length}</span><span>${label}</span></button>`;
+    const voterLine = ["yes","maybe","no"].filter(ch => by(ch).length)
+      .map(ch => `<b>${ch[0].toUpperCase() + ch.slice(1)}:</b> ${by(ch).map(esc).join(", ")}`).join(" · ");
+    const open = openComments.has(it.id);
+    html += `<article class="card">
+      <h3 class="item-title">${esc(it.title)}</h3>
+      <div class="meta">Added by ${esc(it.created_by)}</div>
+      ${it.note ? `<p class="note">${esc(it.note)}</p>` : ""}
+      <div class="votes">${btn("yes","Yes")}${btn("maybe","Maybe")}${btn("no","No")}</div>
+      ${voterLine ? `<div class="voters">${voterLine}</div>` : ""}
+      <div class="item-actions">
+        <button class="link" data-toggle="${it.id}">${open ? "Hide" : "Show"} comments (${cs.length})</button>
+        <button class="link danger" data-del="${it.id}">Delete</button>
+      </div>
+      ${open ? `<div class="comments">
+        ${cs.map(c => `<div class="comment"><span class="by">${esc(c.author)}</span> <span class="when">${esc(fmtWhen(c.created_at))}</span><br>${esc(c.body)}</div>`).join("") || `<div class="meta">No comments yet.</div>`}
+        <form class="comment-form" data-comment="${it.id}">
+          <input maxlength="2000" placeholder="Add a comment" required>
+          <button type="submit">Post</button>
+        </form></div>` : ""}
+    </article>`;
+  }
+  list.innerHTML = html;
+}
+
+$("list").addEventListener("click", async (e) => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (!me) return askName();
+  if (t.dataset.vote) {
+    const id = t.dataset.id, choice = t.dataset.vote;
+    const current = state.votes.find(v => v.item_id === id && v.voter === me);
+    if (current && current.choice === choice) {
+      state.votes = state.votes.filter(v => v !== current); render();
+      await db.from("votes").delete().match({ item_id: id, voter: me });
+    } else {
+      state.votes = state.votes.filter(v => v !== current).concat({ item_id: id, voter: me, choice }); render();
+      const { error } = await db.from("votes").upsert({ item_id: id, voter: me, choice, updated_at: new Date().toISOString() });
+      if (error) { alert("Vote didn't save: " + error.message); load(); }
+    }
+  } else if (t.dataset.toggle) {
+    const id = t.dataset.toggle;
+    openComments.has(id) ? openComments.delete(id) : openComments.add(id);
+    render();
+  } else if (t.dataset.del) {
+    const it = state.items.find(i => i.id === t.dataset.del);
+    if (!confirm(`Delete "${it.title}" and its votes and comments?`)) return;
+    await db.from("items").delete().eq("id", it.id);
+    load();
+  }
+});
+
+$("list").addEventListener("submit", async (e) => {
+  const f = e.target.closest("form[data-comment]"); if (!f) return;
+  e.preventDefault();
+  if (!me) return askName();
+  const input = f.querySelector("input"), body = input.value.trim();
+  if (!body) return;
+  input.disabled = true;
+  const { error } = await db.from("comments").insert({ item_id: f.dataset.comment, author: me, body });
+  input.disabled = false;
+  if (error) { alert("Comment didn't save: " + error.message); return; }
+  input.value = "";
+  load();
+});
+
+$("add-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!me) return askName();
+  $("add-error").textContent = "";
+  const title = $("f-title").value.trim();
+  if (!title) return;
+  const { error } = await db.from("items").insert({
+    title, note: $("f-note").value.trim() || null, item_date: $("f-date").value || null, created_by: me,
+  });
+  if (error) { $("add-error").textContent = "Couldn't add it: " + error.message; return; }
+  $("f-title").value = ""; $("f-note").value = "";
+  load();
+});
+
+// Live updates: refresh whenever anyone changes anything.
+let reloadTimer;
+const scheduleReload = () => { clearTimeout(reloadTimer); reloadTimer = setTimeout(load, 250); };
+db.channel("itinerary")
+  .on("postgres_changes", { event: "*", schema: "public", table: "items" }, scheduleReload)
+  .on("postgres_changes", { event: "*", schema: "public", table: "votes" }, scheduleReload)
+  .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, scheduleReload)
+  .subscribe();
+
+renderWho();
+load();
+if (!me) askName();
+</script>
+</body>
+</html>
