@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>London 2026</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1d3a6e">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="London 2026">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   :root {
     --bg: #f6f5f2; --card: #fff; --text: #1f2328; --muted: #6b7078; --border: #e3e1dc;
@@ -27,6 +35,7 @@
   .who { color: var(--muted); font-size: .9rem; text-align: right; }
   .who button { margin-left: 6px; }
   .hero { display: block; width: 100%; height: auto; max-height: 320px; object-fit: cover; object-position: center 35%; border-radius: 12px; margin-bottom: 16px; }
+  .install { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
   input, textarea, button { font: inherit; color: inherit; }
   input, textarea { width: 100%; padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
@@ -68,6 +77,10 @@
     <h1>London 2026</h1>
     <div class="who" id="who"></div>
   </header>
+  <div class="card install" id="install" hidden>
+    <span id="install-text">Install London 2026 on your phone for quick access.</span>
+    <span style="display:flex;gap:8px"><button class="primary" id="install-btn">Install app</button><button id="install-close" aria-label="Dismiss">✕</button></span>
+  </div>
   <img class="hero" src="photo.jpg" alt="The group" width="828" height="467">
 
   <form class="card" id="add-form">
@@ -306,6 +319,28 @@ db.channel("itinerary")
   .on("postgres_changes", { event: "*", schema: "public", table: "votes" }, scheduleReload)
   .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, scheduleReload)
   .subscribe();
+
+// ---- Install as an app ----
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+(function setupInstall() {
+  const box = $("install"), btn = $("install-btn"), text = $("install-text");
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  let dismissed = false; try { dismissed = localStorage.getItem("install-dismissed") === "1"; } catch (e) {}
+  if (standalone || dismissed) return;
+  $("install-close").onclick = () => { box.hidden = true; try { localStorage.setItem("install-dismissed", "1"); } catch (e) {} };
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (ios) {
+    text.innerHTML = "To install: tap the <b>Share</b> button in Safari, then <b>Add to Home Screen</b>.";
+    btn.hidden = true; box.hidden = false; return;
+  }
+  let deferred;
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferred = e; box.hidden = false; });
+  btn.onclick = async () => {
+    if (!deferred) return;
+    deferred.prompt(); await deferred.userChoice; deferred = null; box.hidden = true;
+  };
+  window.addEventListener("appinstalled", () => { box.hidden = true; });
+})();
 
 renderWho();
 load();
